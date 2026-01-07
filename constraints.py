@@ -17,7 +17,7 @@ class EdgeConstraint:
     agent_id: int
     from_pos: GridPos
     to_pos: GridPos
-    time: Time  # edge dipakai dari time-1 ke time
+    time: Time
 
 
 @dataclass

@@ -72,8 +72,6 @@ def single_agent_astar_to_interval(
             # if metrics.low_level_astar_expanded > MAX_ASTAR_EXPANDED:
             #     return None
 
-        pos, t, g = current.pos, current.time, current.g
-
         if t > time_horizon:
             continue
 

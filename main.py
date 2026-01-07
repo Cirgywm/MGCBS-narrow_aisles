@@ -1,5 +1,3 @@
-# main.py
-
 from __future__ import annotations
 
 from typing import List, Tuple, Optional
@@ -20,7 +18,7 @@ from visualization import visualize_paths_per_timestep
 
 
 # ----------------------------------------------------------------------
-# 1. Fungsi untuk membangun layout warehouse (sama seperti versi kamu)
+# 1. Fungsi untuk membangun layout warehouse
 # ----------------------------------------------------------------------
 def create_warehouse_grid() -> GridMap:
     width, height = 38, 24
@@ -179,7 +177,7 @@ def generate_agents_for_scenario(
             shelves_for_agents.append(chosen)
 
     agents: List[AgentTask] = []
-    idx = 0
+    # idx = 0
     for aid in range(num_agents):
         start = docking_chosen[aid]
         loading_goal = loading_chosen[aid]
@@ -214,28 +212,29 @@ def generate_agents_for_scenario(
 # ----------------------------------------------------------------------
 # 4. Estimasi time horizon
 # ----------------------------------------------------------------------
-def estimate_time_horizon(grid: GridMap, tasks_per_agent: int) -> int:
-    """Estimasi sederhana batas waktu per agent.
+# def estimate_time_horizon(grid: GridMap, tasks_per_agent: int) -> int:
+#     """Estimasi sederhana batas waktu per agent.
 
-    Bisa di tweak: makin besar kalau sering 'no solution karena horizon'.
-    """
-    return (grid.width + grid.height) * (tasks_per_agent + 2)
+#     Bisa di tweak: makin besar kalau sering 'no solution karena horizon'.
+#     """
+#     return (grid.width + grid.height) * (tasks_per_agent + 2)
 
-# def estimate_time_horizon(grid: GridMap, agents: List[AgentTask]) -> int:
-#     """Estimasi horizon berdasarkan total jarak Manhattan path ideal."""
-#     max_est = 0
-#     for ag in agents:
-#         # start -> each goal (berurutan)
-#         est = 0
-#         cur = ag.start
-#         for g in ag.task_goals:
-#             est += manhattan(cur, g)
-#             cur = g
-#         # kasih margin faktor 2
-#         if est > max_est:
-#             max_est = est
-#     # faktor pengaman (mis. 2x atau 3x)
-#     return int(max_est * 2) + 10
+def estimate_time_horizon(grid: GridMap, agents: List[AgentTask]) -> int:
+    """Estimasi horizon berdasarkan total jarak Manhattan path ideal."""
+    max_est = 0
+    for ag in agents:
+        est = manhattan(ag.start, ag.task_goals[0])
+        
+        for i in range(len(ag.task_goals) - 1):
+            est += manhattan(ag.task_goals[i], ag.task_goals[i + 1])
+            
+        if ag.loading_goal is not None:
+            est += manhattan(ag.task_goals[-1], ag.loading_goal)
+            
+        if est > max_est:
+            max_est = est
+    # Faktor pengaman (mis. 2x atau 3x) + padding
+    return int(max_est * 2) + 10
 
 
 # ----------------------------------------------------------------------
@@ -249,6 +248,9 @@ def run_single_scenario(
     verbose: bool = True,
     time_limit: float = 30.0,
 ):
+    all_summary = []
+    all_detailed = []
+
     grid = create_warehouse_grid()
     agents = generate_agents_for_scenario(
         grid=grid,
@@ -257,7 +259,7 @@ def run_single_scenario(
         seed=seed,
     )
 
-    time_horizon = estimate_time_horizon(grid, tasks_per_agent)
+    time_horizon = estimate_time_horizon(grid, agents)
 
     solver = MGCBSSolverA2(
         grid=grid,
@@ -322,12 +324,16 @@ def run_single_scenario(
                     "agent_id": a.agent_id,
                     "start": list(a.start),
                     "task_goals": [list(g) for g in a.task_goals],
+                    "shelves": [list(s) for s in a.shelves],
                     "loading_goal": list(a.loading_goal) if a.loading_goal else None,
                 }
                 for a in agents
             ],
             "solution_paths": None,
         }
+
+        all_summary.append(summary_row)
+        all_detailed.append(detail)
 
         if verbose:
             print(f"[{status.upper()}] Agen={num_agents}, task={tasks_per_agent}, seed={seed}")
@@ -336,78 +342,107 @@ def run_single_scenario(
                   f"DSS={solver.metrics.low_level_states_expanded}, "
                   f"A*={solver.metrics.low_level_astar_expanded}")
 
-        return summary_row, detail
+    else:
+        # SUCCESS CASE -----------------------
 
-    # SUCCESS CASE BELOW -----------------------
+        soc = sum(len(p) - 1 for p in solution.values())
+        makespan = max(len(p) - 1 for p in solution.values())
 
-    soc = sum(len(p) - 1 for p in solution.values())
-    makespan = max(len(p) - 1 for p in solution.values())
+        summary_row = {
+            "iteration": iteration,
+            "status": "success",
+            "num_agents": num_agents,
+            "tasks_per_agent": tasks_per_agent,
+            "seed": seed,
+            "horizon": time_horizon,
+            "soc": soc,
+            "makespan": makespan,
+            "elapsed_ms": elapsed * 1000.0,
+            "cbs_nodes": solver.metrics.cbs_nodes_expanded,
+            "lowlevel_states": solver.metrics.low_level_states_expanded,
+            "astar_states": solver.metrics.low_level_astar_expanded,
+            "conflicts_found": solver.metrics.conflicts_found,
+            "conflicts_resolved": solver.metrics.conflicts_resolved,
+        }
 
-    summary_row = {
-        "iteration": iteration,
-        "status": "success",
-        "num_agents": num_agents,
-        "tasks_per_agent": tasks_per_agent,
-        "seed": seed,
-        "horizon": time_horizon,
-        "soc": soc,
-        "makespan": makespan,
-        "elapsed_ms": elapsed * 1000.0,
-        "cbs_nodes": solver.metrics.cbs_nodes_expanded,
-        "lowlevel_states": solver.metrics.low_level_states_expanded,
-        "astar_states": solver.metrics.low_level_astar_expanded,
-        "conflicts_found": solver.metrics.conflicts_found,
-        "conflicts_resolved": solver.metrics.conflicts_resolved,
-    }
+        detail = {
+            "iteration": iteration,
+            "status": "success",
+            "num_agents": num_agents,
+            "tasks_per_agent": tasks_per_agent,
+            "seed": seed,
+            "horizon": time_horizon,
+            "metrics": summary_row,
+            "agents": [
+                {
+                    "agent_id": a.agent_id,
+                    "start": list(a.start),
+                    "task_goals": [list(g) for g in a.task_goals],
+                    "shelves": [list(s) for s in a.shelves],
+                    "loading_goal": list(a.loading_goal) if a.loading_goal else None,
+                    "path": [list(p) for p in solution[a.agent_id]],
+                }
+                for a in agents
+            ]
+        }
 
-    detail = {
-        "iteration": iteration,
-        "status": "success",
-        "num_agents": num_agents,
-        "tasks_per_agent": tasks_per_agent,
-        "seed": seed,
-        "horizon": time_horizon,
-        "metrics": summary_row,
-        "agents": [
-            {
-                "agent_id": a.agent_id,
-                "start": list(a.start),
-                "task_goals": [list(g) for g in a.task_goals],
-                "loading_goal": list(a.loading_goal) if a.loading_goal else None,
-                "path": [list(p) for p in solution[a.agent_id]],
-            }
-            for a in agents
-        ]
-    }
+        all_summary.append(summary_row)
+        all_detailed.append(detail)
 
-    if verbose:
-        print(f"[OK] Agen={num_agents}, task={tasks_per_agent}, seed={seed}")
-        
-    if status == "success":
-        # Visualize solution
-        scenario_name = f"na{num_agents}_nt{tasks_per_agent}_seed{seed}"
-        out_dir = os.path.join("figures", f"iter{iteration}", scenario_name)
+        if verbose:
+            print(f"[OK] Agen={num_agents}, task={tasks_per_agent}, seed={seed}")
+            
+        # if status == "success":
+        #     # Visualize solution
+        #     scenario_name = f"na{num_agents}_nt{tasks_per_agent}_seed{seed}"
+        #     out_dir = os.path.join("figures", f"iter{iteration}", scenario_name)
 
-        visualize_paths_per_timestep(
-            grid=grid,
-            agents=agents,
-            solution=solution,
-            out_dir=out_dir,
-            scenario_name=scenario_name,
-            draw_trails=True,
-        )
+        #     visualize_paths_per_timestep(
+        #         grid=grid,
+        #         agents=agents,
+        #         solution=solution,
+        #         out_dir=out_dir,
+        #         scenario_name=scenario_name,
+        #         draw_trails=True,
+        #     )
+
+    # ----- simpan ke CSV -----
+    if all_summary:
+        # Union dari semua fieldnames
+        fieldnames = set()
+        for row in all_summary:
+            for k in row.keys():
+                fieldnames.add(k)
+
+        # Convert ke list
+        fieldnames = list(sorted(fieldnames))
+
+        with open("mgcbs_results_summary.csv", "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+
+            for row in all_summary:
+                safe_row = {key: row.get(key, "") for key in fieldnames}
+                writer.writerow(safe_row)
+
+        print("\nSummary disimpan ke mgcbs_results_summary.csv")
+
+    # ----- JSON detail -----
+    with open("mgcbs_results_detailed.json", "w") as f:
+        json.dump(all_detailed, f, indent=2)
+    print("Detail disimpan ke mgcbs_results_detailed.json")
 
     return summary_row, detail
 
 
 # ----------------------------------------------------------------------
-# 6. Jalankan seluruh kombinasi eksperimen (4 x 3)
+# 6. Jalankan kombinasi eksperimen
 # ----------------------------------------------------------------------
-def run_all_experiments():
+def run_all_experiments(iterations: int = 3):
     agent_variants = [2, 4, 5, 6, 8]
     tasks_variants = [1, 2, 3, 5]
-    iteration_variants = 3
-    
+    iteration_variants = iterations
+
     all_summary = []
     all_detailed = []
 
@@ -447,7 +482,7 @@ def run_all_experiments():
                 all_summary.append(summary_row)
                 all_detailed.append(detailed_record)
 
-    # ----- simpan ke CSV (dibuka di Excel) -----
+    # ----- simpan ke CSV -----
     if all_summary:
         # Union dari semua fieldnames
         fieldnames = set()
@@ -468,22 +503,22 @@ def run_all_experiments():
 
         print("\nSummary disimpan ke mgcbs_results_summary.csv")
 
-    # ----- simpan ke JSON detail -----
+    # ----- JSON detail -----
     with open("mgcbs_results_detailed.json", "w") as f:
         json.dump(all_detailed, f, indent=2)
     print("Detail disimpan ke mgcbs_results_detailed.json")
 
 
 if __name__ == "__main__":
-    # run_single_scenario(
-    #     num_agents=2,
-    #     tasks_per_agent=1,
-    #     seed=1021,
-    #     verbose=True,
-    #     time_limit=30,
-    # )
+    run_single_scenario(
+        num_agents=2,
+        tasks_per_agent=2,
+        seed=1022,
+        verbose=True,
+        time_limit=120,
+    )
     
-    run_all_experiments()
+    # run_all_experiments(iterations=3)
     
     # grid = create_warehouse_grid()
     # grid.visualize()
