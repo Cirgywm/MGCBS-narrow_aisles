@@ -1,6 +1,6 @@
 # MGCBS Warehouse Simulation
 
-This project implements a Multi-Goal Conflict-Based Search (MGCBS) variant A2 algorithm from Tang et al. (2024) article namely "MGCBS:AnOptimal and Efficient Algorithm for Solving Multi-Goal Multi-Agent Path Finding Problem". This algorithm used for multi-agent pathfinding in a warehouse environment. It is designed to simulate agents (e.g., robots or workers) navigating a grid-based warehouse to complete tasks involving picking items from shelves and delivering to loading stations, while avoiding conflicts.
+This project implements a Multi-Goal Conflict-Based Search (MGCBS) variant A2 algorithm from Tang et al. (2024) article namely ["MGCBS:AnOptimal and Efficient Algorithm for Solving Multi-Goal Multi-Agent Path Finding Problem"](https://www.ijcai.org/proceedings/2024/28). This algorithm used for multi-agent pathfinding in a warehouse environment. It is designed to simulate agents (e.g., robots or workers) navigating a grid-based warehouse to complete tasks involving picking items from shelves and delivering to loading stations, while avoiding conflicts.
 
 The code is part of a thesis (skripsi) on implementing multi-agent systems into mock warehouse automation. For results, check [results.md](./results.md) or check out the research paper on [Brawijaya Knowledge Garden](https://repository.ub.ac.id/id/eprint/257330/).
 
