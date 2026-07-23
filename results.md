@@ -1,7 +1,7 @@
 # Research Results
 
 ## Configurations
-The simulation evaluated 5 agent counts ($\text{num\_agents} \in \{2, 4, 5, 6, 8\}$) across 4 goal settings per agent ($\text{goals\_per\_agent} \in \{1, 2, 3, 5\}$). With 20 iterations per combination (each iteration is a different seed, means different set of goals, starting and finish points), the experiment comprised 400 scenarios in total. These configurations run in an evaluation grid within 120 seconds max as algorithm cut-off time. The evaluation grid is as shown in the visualization below.
+The simulation evaluated 5 agent counts (num_agents ϵ {2, 4, 5, 6, 8}) across 4 goal settings per agent (goals_per_agent ϵ {1, 2, 3, 5}). With 20 iterations per combination (each iteration is a different seed, means different set of goals, starting and finish points), the experiment comprised 400 scenarios in total. These configurations run in an evaluation grid within 120 seconds max as algorithm cut-off time. The evaluation grid is as shown in the visualization below.
 
 ![Evaluation Grid](./assets/evaluation_grid.png)
 
@@ -9,7 +9,7 @@ The simulation evaluated 5 agent counts ($\text{num\_agents} \in \{2, 4, 5, 6, 8
 > **Empty Space**: passable by only 1 agent at a time.</br>
 > **Walls**: not passable. </br>
 > **Shelf**: not passable. </br>
-> **Loading Stations**: passable, serves as finish node (+1 goals for every agent outside of their respectives $\text{goals\_per\_agent}$). </br>
+> **Loading Stations**: passable, serves as finish node (+1 goals for every agent outside of their respectives goals_per_agent). </br>
 > **Docking Stations**: passable, serves as starting node for every agent. </br>
 > **Narrow Aisle**: practically the same as empty spaces, used to highlights where agents doing their tasks (a node vertically adjacent to shelf). </br>
 > **Intersections**: practically the same as empty spaces, used to highlights where traffic bottlenecks usually happens.
@@ -36,8 +36,8 @@ The simulation evaluated 5 agent counts ($\text{num\_agents} \in \{2, 4, 5, 6, 8
 | **6** | 20/20 | 18/20 | 17/20 | 11/20 |
 | **8** | 19/20 | 18/20 | 13/20 | 9/20 |
 
-> **NA**: $\text{num\_agent}$. </br>
-> **NG**: $\text{goals\_per\_agent}$.
+> **NA**: num_agent. </br>
+> **NG**: goals_per_agent.
 
 ### Metrics Graph
 #### Sum of Cost (Average)
