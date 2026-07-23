@@ -1,0 +1,2 @@
+astar_states,cbs_nodes,conflicts_found,conflicts_resolved,elapsed_ms,horizon,iteration,lowlevel_states,makespan,num_agents,seed,soc,status,tasks_per_agent
+1333,1,0,0,50.59839999739779,186,1,9,70,3,1022,187,success,2
